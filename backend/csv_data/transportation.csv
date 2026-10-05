@@ -1,0 +1,18 @@
+id,destination_id,transport_type,source,destination,travel_time,fare,distance,availability
+2,1,Private AC Cab,Kochi Airport,Munnar,3.5 Hours,3500.0,120.0,available
+3,1,Rental Bike (Royal Enfield),Munnar Town,Mattupetty,Per Day,800.0,15.0,available
+4,2,KSRTC Bus,Calicut (Kozhikode),Wayanad,3 Hours,120.0,85.0,available
+5,2,Tourist Taxi,Calicut Railway Station,Wayanad,2.5 Hours,2500.0,85.0,available
+6,2,Rental Scooter,Kalpetta,Vythiri,Per Day,400.0,12.0,available
+7,3,Express Train,Ernakulam (Kochi),Alappuzha,1 Hour,150.0,57.0,available
+8,3,Private Taxi,Ernakulam,Cherthala,1.2 Hours,1800.0,55.0,available
+10,4,Prepaid Taxi,Trivandrum Airport,Varkala Cliff,1.1 Hours,1600.0,45.0,available
+11,5,Kochi Metro,Aluva,MG Road Kochi,30 Mins,50.0,18.0,available
+12,6,Bus & Auto Link,Chalakkudy,Athirappilly Falls,1.2 Hours,150.0,30.0,available
+13,7,KSRTC Bus,Kottayam,Thekkady (Kumily),3.5 Hours,160.0,105.0,available
+14,8,Airport Auto Rickshaw,Trivandrum Airport,Kovalam Beach,30 Mins,400.0,15.0,available
+15,1,Bus,Ernakulam,Munnar,4 Hours,300.0,130.0,available
+16,3,auto test,Alappuzha,Cherthala,3 Hours,500.0,485.0,available
+17,1,KSRTC Bus,Munnar,Devikulam,2Hours,400.0,100.0,available
+18,4,KSRTC Bus,Varkala,Sivagiri,1 Hours,100.0,30.0,available
+19,4,KSRTC Bus,Varkala,Edava,1 Hours,100.0,30.0,available

@@ -1,0 +1,15 @@
+id,destination_id,name,cuisine,avg_cost,rating,address
+1,1,Rapsy Restaurant,Kerala & North Indian,250.0,4.4,Munnar Main Market
+3,2,1980's A Nostalgic Restaurant,Traditional Kerala Meals,300.0,4.6,Kalpetta Bypass
+4,2,Wilton Hotel & Restaurant,Malabar Biriyani & Arabian,350.0,4.3,Sultan Bathery Road
+5,3,Cassiaa Restaurant,Seafood & Continental,450.0,4.6,"Beach Road, Alleppey"
+6,4,Darjeeling Cafe,"Tibetan, Continental & Seafood",500.0,4.7,Varkala Cliff
+7,5,Kashi Art Cafe,Cafe & European Breakfast,400.0,4.6,"Burgher Street, Fort Kochi"
+8,5,Oceanos Restaurant,Kerala Seafood Specialty,600.0,4.5,"Elphinstone Road, Kochi"
+9,6,Waterfalls Cafe,Traditional Kerala,200.0,4.0,Waterfall Entry Gate Road
+10,7,Ambadi Restaurant,Traditional Kerala,250.0,4.1,Kumily
+11,8,Bait Seafood Restaurant,Fine Dining Seafood,1200.0,4.8,The Leela Beachside
+12,4,abc,Local Cuisine,300.0,4.5,
+13,1,example,Local Cuisine,570.0,4.0,
+15,3,Cassia Palace,Local,400.0,4.5,Beach Rd
+16,1,Spice Fusion,"Kerala Traditional, Seafood, South Indian",450.0,4.5,"Bazaar Road, Munnar"

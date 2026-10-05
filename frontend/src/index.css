@@ -1,0 +1,207 @@
+@import 'leaflet/dist/leaflet.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  body {
+    background-color: #07111f;
+    color: #e2e8f0;
+    transition: color 0.3s ease, background-color 0.3s ease;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, .font-title {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer utilities {
+  .bg-luxuryBg {
+    background-color: #0b1528;
+  }
+
+  .bg-luxuryBg\/30 {
+    background-color: rgba(11, 21, 40, 0.3);
+  }
+
+  .bg-luxuryBg\/40 {
+    background-color: rgba(11, 21, 40, 0.4);
+  }
+
+  .bg-luxuryBg\/60 {
+    background-color: rgba(11, 21, 40, 0.6);
+  }
+
+  .bg-luxuryBg\/80 {
+    background-color: rgba(11, 21, 40, 0.8);
+  }
+
+  .bg-luxurySurface {
+    background-color: #101b30;
+  }
+
+  .bg-luxuryCard {
+    background-color: #14233f;
+  }
+
+  .text-luxuryText {
+    color: #f8fafc;
+  }
+
+  .text-luxuryMuted {
+    color: #8ea0bd;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1627;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27406f;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* Clean Premium Components */
+.glass-panel {
+  background: rgba(10, 20, 36, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 20px 40px rgba(2, 8, 23, 0.35);
+}
+
+.glass-card {
+  background: rgba(13, 24, 42, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 30px rgba(2, 8, 23, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.glass-card:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.12);
+  transform: translateY(-3px);
+}
+
+.card-luxury {
+  background: #0f1b2e;
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  border-radius: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(2, 8, 23, 0.2);
+}
+
+.card-luxury:hover {
+  border-color: rgba(59, 130, 246, 0.24);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.12);
+}
+
+.glass-input {
+  background: #0f1b2e;
+  border: 1px solid #24364f;
+  color: #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  outline: none;
+}
+
+/* Subtle Micro-Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes slow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: slow-spin 60s linear infinite;
+}
+
+/* Glowing text gradients */
+.text-luxury {
+  @apply bg-gradient-to-r from-[#2563EB] to-[#06B6D4] bg-clip-text text-transparent;
+}
+
+.bg-luxury {
+  @apply bg-gradient-to-r from-[#2563EB] to-[#06B6D4];
+}
+
+.glow-border {
+  border: 1px solid rgba(37, 99, 235, 0.16);
+}
+
+/* Leaflet Map Styling */
+.leaflet-container {
+
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+  border-radius: 1.25rem;
+  background-color: #0b1528 !important;
+  z-index: 10;
+}
+
+/* Custom Pin Markers */
+.custom-leaflet-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.custom-leaflet-marker-origin {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: white;
+  border-radius: 50%;
+  padding: 6px;
+  border: 2px solid white;
+}
+
+.custom-leaflet-marker-dest {
+  background: linear-gradient(135deg, #f43f5e, #f97316);
+  color: white;
+  border-radius: 50%;
+  padding: 6px;
+  border: 2px solid white;
+}
+
+/* Custom Map Popup Styling */
+.leaflet-popup-content-wrapper {
+  background: #101b30 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 25px rgba(2, 8, 23, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: #101b30 !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
