@@ -715,8 +715,8 @@ export default function TripDetails() {
             {/* Route Summary */}
             {transitData.distance_km > 0 && (
               <RouteSummary
-                originName={typeof fromLocation === 'object' ? fromLocation.name : fromLocation}
-                destinationName={typeof toLocation === 'object' ? toLocation.name : toLocation}
+                originName={(typeof fromLocation === 'object' && fromLocation !== null) ? (fromLocation.name || fromLocation.label || '') : (fromLocation || '')}
+                destinationName={(typeof toLocation === 'object' && toLocation !== null) ? (toLocation.name || toLocation.label || '') : (toLocation || '')}
                 distanceKm={transitData.distance_km}
                 durationFormatted={transitData.duration_formatted}
                 dataSource={transitData.dataSource}
@@ -767,7 +767,7 @@ export default function TripDetails() {
                 aiAdvice={transitData.ai_advice}
                 excludedModes={transitData.excluded_modes || []}
                 aiFeasibility={transitData.ai_feasibility}
-                originName={typeof fromLocation === 'object' ? fromLocation.name : fromLocation}
+                originName={(typeof fromLocation === 'object' && fromLocation !== null) ? (fromLocation.name || fromLocation.label || '') : (fromLocation || '')}
                 selectedId={selectedTransitId}
                 onSelect={(opt) => setSelectedTransitId(opt.id)}
                 onShowOnMap={(opt) => {

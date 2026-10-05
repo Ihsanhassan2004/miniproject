@@ -563,8 +563,8 @@ export default function TravelMap({
 
     try {
       // 1. Origin Marker
-      let oLat = origin?.latitude || (typeof origin === 'object' && origin.lat);
-      let oLon = origin?.longitude || (typeof origin === 'object' && (origin.lon || origin.lng));
+      let oLat = origin?.latitude || (typeof origin === 'object' && origin !== null && origin.lat);
+      let oLon = origin?.longitude || (typeof origin === 'object' && origin !== null && (origin.lon || origin.lng));
       const oName = origin?.name || origin?.label || (typeof origin === 'string' ? origin : 'Origin');
 
       if ((!oLat || !oLon) && Array.isArray(geometry) && geometry.length > 0) {
@@ -610,8 +610,8 @@ export default function TravelMap({
 
       // 2. Destination Marker (only rendered when shouldShowDestination is true)
       if (shouldShowDestination) {
-        let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
-        let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
+        let dLat = destination?.latitude || (typeof destination === 'object' && destination !== null && destination.lat);
+        let dLon = destination?.longitude || (typeof destination === 'object' && destination !== null && (destination.lon || destination.lng));
         const dName = destination?.name || destination?.label || (typeof destination === 'string' ? destination : 'Destination');
 
         if ((!dLat || !dLon) && Array.isArray(geometry) && geometry.length > 0) {
@@ -750,13 +750,13 @@ export default function TravelMap({
     if (!map) return;
 
     const bounds = [];
-    let oLat = origin?.latitude || (typeof origin === 'object' && origin.lat);
-    let oLon = origin?.longitude || (typeof origin === 'object' && (origin.lon || origin.lng));
+    let oLat = origin?.latitude || (typeof origin === 'object' && origin !== null && origin.lat);
+    let oLon = origin?.longitude || (typeof origin === 'object' && origin !== null && (origin.lon || origin.lng));
     if (oLat && oLon) bounds.push([oLat, oLon]);
 
     if (shouldShowDestination) {
-      let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
-      let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
+      let dLat = destination?.latitude || (typeof destination === 'object' && destination !== null && destination.lat);
+      let dLon = destination?.longitude || (typeof destination === 'object' && destination !== null && (destination.lon || destination.lng));
       if (dLat && dLon) bounds.push([dLat, dLon]);
 
       if (geometry && geometry.length > 0) {
@@ -779,8 +779,8 @@ export default function TravelMap({
     }, 250);
   };
 
-  const originDisplayName = typeof origin === 'object' ? (origin.name || origin.label) : origin;
-  const destDisplayName = typeof destination === 'object' ? (destination.name || destination.label) : destination;
+  const originDisplayName = (typeof origin === 'object' && origin !== null) ? (origin.name || origin.label) : (typeof origin === 'string' ? origin : '');
+  const destDisplayName = (typeof destination === 'object' && destination !== null) ? (destination.name || destination.label) : (typeof destination === 'string' ? destination : '');
 
   return (
     <div className={`relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#07111f] shadow-2xl transition-all duration-300 ${

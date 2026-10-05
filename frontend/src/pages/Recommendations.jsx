@@ -669,7 +669,7 @@ export default function Recommendations() {
         transport_option: sTrans,
         distance_km: transState.distance_km || sTrans.distance_km || null,
         duration_formatted: transState.duration_formatted || sTrans.duration_formatted || null,
-        origin_name: typeof transState.origin === 'object' ? transState.origin.name : (transState.origin || (sIdx === 0 ? (preferences?.source_location || 'Kochi') : (stops[sIdx - 1]?.destinationName || 'Kochi'))),
+        origin_name: (typeof transState.origin === 'object' && transState.origin !== null) ? (transState.origin.name || transState.origin.label || '') : (transState.origin || (sIdx === 0 ? (preferences?.source_location || 'Kochi') : (stops[sIdx - 1]?.destinationName || 'Kochi'))),
         custom_items: customItineraryItems[sId] || []
       };
     });
@@ -695,9 +695,9 @@ export default function Recommendations() {
     const fullItinerary = [];
     let currentDayNumber = 1;
     const totalSegs = segmentsConfig.length;
-    const defaultOriginCity = typeof focusedTransit.origin === 'object'
-      ? focusedTransit.origin.name
-      : (preferences?.source_location || 'Kochi');
+    const defaultOriginCity = (typeof focusedTransit.origin === 'object' && focusedTransit.origin !== null)
+      ? (focusedTransit.origin.name || focusedTransit.origin.label || '')
+      : (focusedTransit.origin || preferences?.source_location || 'Kochi');
 
     segmentsConfig.forEach((seg, segIdx) => {
       const segDays = seg.duration_days;
@@ -1077,8 +1077,8 @@ export default function Recommendations() {
   };
 
   const buildSaveTripPayload = (tripTitleToUse) => {
-    const originName = typeof focusedTransit.origin === 'object'
-      ? focusedTransit.origin.name
+    const originName = (typeof focusedTransit.origin === 'object' && focusedTransit.origin !== null)
+      ? (focusedTransit.origin.name || focusedTransit.origin.label || '')
       : (focusedTransit.origin || preferences?.source_location || 'Kochi');
 
     const primaryDestObj = segmentsConfig[0];
@@ -2057,7 +2057,7 @@ export default function Recommendations() {
                 aiAdvice={focusedTransit.ai_advice}
                 excludedModes={focusedTransit.excluded_modes}
                 aiFeasibility={focusedTransit.ai_feasibility}
-                originName={typeof focusedTransit.origin === 'object' ? focusedTransit.origin.name : (focusedTransit.origin || preferences?.source_location || 'Kochi')}
+                originName={(typeof focusedTransit.origin === 'object' && focusedTransit.origin !== null) ? (focusedTransit.origin.name || focusedTransit.origin.label || '') : (focusedTransit.origin || preferences?.source_location || 'Kochi')}
                 selectedId={selectedTransIdForFocused}
                 onSelect={(opt) => {
                   setSelectedTransports(prev => ({ ...prev, [focusedDestId]: opt.id }));

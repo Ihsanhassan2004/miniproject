@@ -52,7 +52,7 @@ export default function TravelLocationSelector({
             label="From (Origin)"
             icon={MapPin}
             iconColor="text-cyan-400"
-            value={typeof origin === 'object' ? (origin.name || origin.label || '') : origin}
+            value={(typeof origin === 'object' && origin !== null) ? (origin.name || origin.label || '') : (origin || '')}
             placeholder="Enter origin (e.g. Dubai, London, Kochi, Bengaluru)"
             onSelect={(loc) => onOriginChange && onOriginChange(loc)}
             disabled={isLoading}
@@ -78,7 +78,7 @@ export default function TravelLocationSelector({
             label="To (Destination)"
             icon={Navigation}
             iconColor="text-rose-400"
-            value={typeof destination === 'object' ? (destination.name || destination.label || '') : destination}
+            value={(typeof destination === 'object' && destination !== null) ? (destination.name || destination.label || '') : (destination || '')}
             placeholder="Enter destination (e.g. Varkala, Munnar)"
             onSelect={(loc) => onDestinationChange && onDestinationChange(loc)}
             disabled={isLoading}
@@ -89,12 +89,12 @@ export default function TravelLocationSelector({
       {/* Coordinate status feedback bar */}
       <div className="flex flex-wrap items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-700/40">
         <div className="flex items-center space-x-3 truncate">
-          {typeof origin === 'object' && origin.latitude && (
+          {(typeof origin === 'object' && origin !== null && origin.latitude) && (
             <span className="truncate">
               📍 Origin: <strong className="text-slate-300">{origin.name}</strong> ({Number(origin.latitude).toFixed(3)}, {Number(origin.longitude).toFixed(3)})
             </span>
           )}
-          {typeof destination === 'object' && destination.latitude && (
+          {(typeof destination === 'object' && destination !== null && destination.latitude) && (
             <span className="truncate">
               🎯 Dest: <strong className="text-slate-300">{destination.name}</strong> ({Number(destination.latitude).toFixed(3)}, {Number(destination.longitude).toFixed(3)})
             </span>

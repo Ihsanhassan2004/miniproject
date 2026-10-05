@@ -674,11 +674,11 @@ export default function PlanTrip() {
                   Click anywhere on the map or tap any destination spot to set your starting origin:
                 </span>
                 <span className="text-slate-400 text-[10px]">
-                  Selected: <strong className="text-slate-200">{typeof sourceLocation === 'object' ? sourceLocation.name : sourceLocation}</strong>
+                  Selected: <strong className="text-slate-200">{(typeof sourceLocation === 'object' && sourceLocation !== null) ? (sourceLocation.name || sourceLocation.label) : (sourceLocation || 'None')}</strong>
                 </span>
               </div>
               <TravelMap
-                origin={typeof sourceLocation === 'object' ? sourceLocation : { name: sourceLocation || 'Kochi', latitude: 9.9312, longitude: 76.2673 }}
+                origin={(typeof sourceLocation === 'object' && sourceLocation !== null) ? sourceLocation : { name: sourceLocation || 'Kochi', latitude: 9.9312, longitude: 76.2673 }}
                 destination={null}
                 height="320px"
                 allowSelection={true}
@@ -697,7 +697,7 @@ export default function PlanTrip() {
                 label="Source Starting Point *"
                 icon={MapPin}
                 iconColor="text-cyan-400"
-                value={typeof sourceLocation === 'object' ? (sourceLocation.name || sourceLocation.label || '') : (sourceLocation || '')}
+                value={(typeof sourceLocation === 'object' && sourceLocation !== null) ? (sourceLocation.name || sourceLocation.label || '') : (sourceLocation || '')}
                 placeholder="e.g. Dubai, Abu Dhabi, Singapore, London, Kochi, Bengaluru..."
                 onSelect={(loc) => {
                   setSourceLocation(loc);
@@ -722,7 +722,7 @@ export default function PlanTrip() {
                       setErrorMsg('');
                     }}
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                      (typeof sourceLocation === 'object' ? sourceLocation.name : sourceLocation)?.toLowerCase().includes(item.name.toLowerCase())
+                      ((typeof sourceLocation === 'object' && sourceLocation !== null) ? sourceLocation.name : (sourceLocation || ''))?.toLowerCase().includes(item.name.toLowerCase())
                         ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60 shadow-sm'
                         : item.isIntl
                           ? 'bg-[#0b1528] text-amber-300/90 border-amber-500/30 hover:border-amber-400/60 hover:bg-amber-950/30'
