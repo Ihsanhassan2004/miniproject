@@ -80,7 +80,8 @@ export default function TravelMap({
   interactive = true,
   onOriginChange,
   onDestinationChange,
-  allowSelection = true
+  allowSelection = true,
+  showDestinationPicker = true
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -89,6 +90,10 @@ export default function TravelMap({
   const searchMarkerRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
   
+  const canPickDestination = Boolean(allowSelection && onDestinationChange && showDestinationPicker !== false);
+  const canPickOrigin = Boolean(allowSelection && onOriginChange);
+  const shouldShowDestination = Boolean(destination && showDestinationPicker !== false);
+
   // Selection mode: null | 'origin' | 'destination'
   const [activePickMode, setActivePickMode] = useState(null);
   const [reverseLoading, setReverseLoading] = useState(false);
@@ -128,7 +133,7 @@ export default function TravelMap({
       if (targetType === 'origin' && onOriginChange) {
         onOriginChange(locObj);
         setSelectionNotice(`📍 Origin updated to "${locObj.name}"`);
-      } else if (targetType === 'destination' && onDestinationChange) {
+      } else if (targetType === 'destination' && canPickDestination) {
         onDestinationChange(locObj);
         setSelectionNotice(`🎯 Destination updated to "${locObj.name}"`);
       }
@@ -142,14 +147,14 @@ export default function TravelMap({
         country: 'India'
       };
       if (targetType === 'origin' && onOriginChange) onOriginChange(fallbackObj);
-      if (targetType === 'destination' && onDestinationChange) onDestinationChange(fallbackObj);
+      if (targetType === 'destination' && canPickDestination) onDestinationChange(fallbackObj);
       setSelectionNotice(`Updated coordinates on route.`);
     } finally {
       setReverseLoading(false);
       setActivePickMode(null);
       setTimeout(() => setSelectionNotice(null), 3500);
     }
-  }, [onOriginChange, onDestinationChange]);
+  }, [onOriginChange, onDestinationChange, canPickDestination]);
 
   const roundCoord = (num) => Number(num).toFixed(4);
 
@@ -263,12 +268,14 @@ export default function TravelMap({
         <div style="font-weight: 800; color: #f8fafc; font-size: 12px; margin-bottom: 2px;">${item.name}</div>
         <div style="color: #94a3b8; font-size: 10px; margin-bottom: 8px;">${item.label}</div>
         <div style="display: flex; gap: 5px;">
-          <button type="button" id="search-set-from" style="flex: 1; background: #0284c7; color: white; border: none; padding: 5px 6px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer;">
-            📍 Set From
+          <button type="button" id="search-set-from" style="flex: 1; background: #0284c7; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; width: 100%;">
+            📍 Set as Starting Origin
           </button>
-          <button type="button" id="search-set-to" style="flex: 1; background: #e11d48; color: white; border: none; padding: 5px 6px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer;">
+          ${canPickDestination ? `
+          <button type="button" id="search-set-to" style="flex: 1; background: #e11d48; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer;">
             🎯 Set To
           </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -285,7 +292,7 @@ export default function TravelMap({
           setTimeout(() => setSelectionNotice(null), 3000);
         };
       }
-      if (toBtn && onDestinationChange) {
+      if (toBtn && canPickDestination && onDestinationChange) {
         toBtn.onclick = () => {
           map.closePopup();
           onDestinationChange(item);
@@ -370,18 +377,18 @@ export default function TravelMap({
       const { lat, lng } = e.latlng;
       const currentMode = activePickModeRef.current;
 
-      if (currentMode === 'origin') {
+      if (currentMode === 'origin' && canPickOrigin) {
         handlePointPicked(lat, lng, 'origin');
         return;
       }
 
-      if (currentMode === 'destination') {
+      if (currentMode === 'destination' && canPickDestination) {
         handlePointPicked(lat, lng, 'destination');
         return;
       }
 
       // Default click behavior: show popup to set From or To
-      if (allowSelection && (onOriginChange || onDestinationChange)) {
+      if (allowSelection && (canPickOrigin || canPickDestination)) {
         const popupContent = document.createElement('div');
         popupContent.className = 'custom-map-click-popup';
         popupContent.innerHTML = `
@@ -389,12 +396,14 @@ export default function TravelMap({
             <div style="font-weight: 800; color: #f8fafc; margin-bottom: 2px;">Selected Point</div>
             <div style="color: #94a3b8; font-size: 10px; margin-bottom: 8px;">Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}</div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
-              <button type="button" id="btn-set-origin" style="background: #0284c7; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                📍 Set as "From" (Origin)
-              </button>
-              <button type="button" id="btn-set-dest" style="background: #e11d48; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              ${canPickOrigin ? `
+              <button type="button" id="btn-set-origin" style="background: #0284c7; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;">
+                📍 Set as Starting Origin
+              </button>` : ''}
+              ${canPickDestination ? `
+              <button type="button" id="btn-set-dest" style="background: #e11d48; color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;">
                 🎯 Set as "To" (Destination)
-              </button>
+              </button>` : ''}
             </div>
           </div>
         `;
@@ -407,7 +416,7 @@ export default function TravelMap({
         setTimeout(() => {
           const originBtn = document.getElementById('btn-set-origin');
           const destBtn = document.getElementById('btn-set-dest');
-          if (originBtn) {
+          if (originBtn && canPickOrigin) {
             originBtn.onclick = (ev) => {
               if (ev) {
                 ev.preventDefault();
@@ -417,7 +426,7 @@ export default function TravelMap({
               handlePointPicked(lat, lng, 'origin');
             };
           }
-          if (destBtn) {
+          if (destBtn && canPickDestination) {
             destBtn.onclick = (ev) => {
               if (ev) {
                 ev.preventDefault();
@@ -435,7 +444,7 @@ export default function TravelMap({
     return () => {
       map.off('click', onMapClick);
     };
-  }, [allowSelection, handlePointPicked, onOriginChange, onDestinationChange]);
+  }, [allowSelection, handlePointPicked, canPickOrigin, canPickDestination]);
 
   // Render Tourist Hotspot Dots
   useEffect(() => {
@@ -470,12 +479,13 @@ export default function TravelMap({
           </div>
           <div style="color: #94a3b8; font-size: 10px; margin-bottom: 6px;">${poi.label}</div>
           <div style="display: flex; gap: 4px;">
-            <button type="button" id="poi-from-${poi.name.replace(/\s+/g, '')}" style="flex: 1; background: #0284c7; color: white; border: none; padding: 5px 6px; border-radius: 5px; font-weight: 700; font-size: 9px; cursor: pointer;">
-              📍 Set From
+            <button type="button" id="poi-from-${poi.name.replace(/\s+/g, '')}" style="flex: 1; background: #0284c7; color: white; border: none; padding: 5px 6px; border-radius: 5px; font-weight: 700; font-size: 9px; cursor: pointer; width: 100%;">
+              📍 Set Origin
             </button>
+            ${canPickDestination ? `
             <button type="button" id="poi-to-${poi.name.replace(/\s+/g, '')}" style="flex: 1; background: #e11d48; color: white; border: none; padding: 5px 6px; border-radius: 5px; font-weight: 700; font-size: 9px; cursor: pointer;">
               🎯 Set To
-            </button>
+            </button>` : ''}
           </div>
         </div>
       `;
@@ -515,7 +525,7 @@ export default function TravelMap({
             setTimeout(() => setSelectionNotice(null), 3000);
           };
         }
-        if (toBtn && onDestinationChange) {
+        if (toBtn && canPickDestination && onDestinationChange) {
           toBtn.onclick = (e) => {
             if (e) {
               e.preventDefault();
@@ -538,7 +548,7 @@ export default function TravelMap({
 
       poiLayer.addLayer(marker);
     });
-  }, [showPOIs, allowSelection, onOriginChange, onDestinationChange, handlePointPicked]);
+  }, [showPOIs, allowSelection, onOriginChange, onDestinationChange, handlePointPicked, canPickDestination]);
 
   // Update Route Polyline & Markers on Map
   useEffect(() => {
@@ -598,54 +608,56 @@ export default function TravelMap({
         bounds.push([oLat, oLon]);
       }
 
-      // 2. Destination Marker
-      let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
-      let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
-      const dName = destination?.name || destination?.label || (typeof destination === 'string' ? destination : 'Destination');
+      // 2. Destination Marker (only rendered when shouldShowDestination is true)
+      if (shouldShowDestination) {
+        let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
+        let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
+        const dName = destination?.name || destination?.label || (typeof destination === 'string' ? destination : 'Destination');
 
-      if ((!dLat || !dLon) && Array.isArray(geometry) && geometry.length > 0) {
-        dLat = geometry[geometry.length - 1][0];
-        dLon = geometry[geometry.length - 1][1];
+        if ((!dLat || !dLon) && Array.isArray(geometry) && geometry.length > 0) {
+          dLat = geometry[geometry.length - 1][0];
+          dLon = geometry[geometry.length - 1][1];
+        }
+
+        if (dLat && dLon) {
+          const destIcon = L.divIcon({
+            className: 'custom-leaflet-marker',
+            html: `
+              <div style="background: linear-gradient(135deg, #e11d48, #f97316); color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(225,29,72,0.6); border: 2.5px solid white; cursor: grab;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+              </div>
+            `,
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+            popupAnchor: [0, -36]
+          });
+
+          const destMarker = L.marker([dLat, dLon], { 
+            icon: destIcon,
+            draggable: Boolean(allowSelection && onDestinationChange && canPickDestination)
+          }).bindPopup(`
+            <div style="font-family: inherit; font-size: 11px; padding: 2px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="color: #fb7185; font-weight: 800; font-size: 9px; text-transform: uppercase;">🔴 Target Destination (To)</span>
+              </div>
+              <b style="color: #f1f5f9; font-size: 13px; display: block; margin: 2px 0;">${dName}</b>
+              <div style="color: #94a3b8; font-size: 10px;">${distanceKm > 0 ? `Distance: ~${distanceKm} km` : ''} (Lat: ${Number(dLat).toFixed(4)}, Lon: ${Number(dLon).toFixed(4)})</div>
+              <div style="color: #fb7185; font-size: 9px; margin-top: 4px; font-weight: 600;">💡 Drag pin to reposition destination</div>
+            </div>
+          `);
+
+          destMarker.on('dragend', (e) => {
+            const { lat, lng } = e.target.getLatLng();
+            handlePointPicked(lat, lng, 'destination');
+          });
+
+          layerGroup.addLayer(destMarker);
+          bounds.push([dLat, dLon]);
+        }
       }
 
-      if (dLat && dLon) {
-        const destIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div style="background: linear-gradient(135deg, #e11d48, #f97316); color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(225,29,72,0.6); border: 2.5px solid white; cursor: grab;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-            </div>
-          `,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-          popupAnchor: [0, -36]
-        });
-
-        const destMarker = L.marker([dLat, dLon], { 
-          icon: destIcon,
-          draggable: Boolean(allowSelection && onDestinationChange)
-        }).bindPopup(`
-          <div style="font-family: inherit; font-size: 11px; padding: 2px;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span style="color: #fb7185; font-weight: 800; font-size: 9px; text-transform: uppercase;">🔴 Target Destination (To)</span>
-            </div>
-            <b style="color: #f1f5f9; font-size: 13px; display: block; margin: 2px 0;">${dName}</b>
-            <div style="color: #94a3b8; font-size: 10px;">${distanceKm > 0 ? `Distance: ~${distanceKm} km` : ''} (Lat: ${Number(dLat).toFixed(4)}, Lon: ${Number(dLon).toFixed(4)})</div>
-            <div style="color: #fb7185; font-size: 9px; margin-top: 4px; font-weight: 600;">💡 Drag pin to reposition destination</div>
-          </div>
-        `);
-
-        destMarker.on('dragend', (e) => {
-          const { lat, lng } = e.target.getLatLng();
-          handlePointPicked(lat, lng, 'destination');
-        });
-
-        layerGroup.addLayer(destMarker);
-        bounds.push([dLat, dLon]);
-      }
-
-      // 3. Draw Route Polyline
-      if (geometry && geometry.length > 0) {
+      // 3. Draw Route Polyline (only if shouldShowDestination and geometry exists)
+      if (shouldShowDestination && geometry && geometry.length > 0) {
         const isFlightRoute = String(dataSource || '').toLowerCase().includes('flight') || 
                               String(dataSource || '').toLowerCase().includes('aviation') || 
                               distanceKm >= 1200;
@@ -731,7 +743,7 @@ export default function TravelMap({
     } catch (err) {
       console.error('Error drawing route on map:', err);
     }
-  }, [origin, destination, geometry, distanceKm, dataSource, allowSelection, onOriginChange, onDestinationChange, handlePointPicked]);
+  }, [origin, destination, geometry, distanceKm, dataSource, allowSelection, onOriginChange, onDestinationChange, handlePointPicked, shouldShowDestination, canPickDestination]);
 
   const handleRecenter = () => {
     const map = mapInstanceRef.current;
@@ -742,14 +754,16 @@ export default function TravelMap({
     let oLon = origin?.longitude || (typeof origin === 'object' && (origin.lon || origin.lng));
     if (oLat && oLon) bounds.push([oLat, oLon]);
 
-    let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
-    let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
-    if (dLat && dLon) bounds.push([dLat, dLon]);
+    if (shouldShowDestination) {
+      let dLat = destination?.latitude || (typeof destination === 'object' && destination.lat);
+      let dLon = destination?.longitude || (typeof destination === 'object' && (destination.lon || destination.lng));
+      if (dLat && dLon) bounds.push([dLat, dLon]);
 
-    if (geometry && geometry.length > 0) {
-      geometry.forEach(pt => {
-        if (Array.isArray(pt) && pt.length >= 2) bounds.push(pt);
-      });
+      if (geometry && geometry.length > 0) {
+        geometry.forEach(pt => {
+          if (Array.isArray(pt) && pt.length >= 2) bounds.push(pt);
+        });
+      }
     }
 
     if (bounds.length > 0) {
@@ -774,15 +788,24 @@ export default function TravelMap({
     }`}>
       {/* Top Map Action Bar */}
       <div className="absolute top-2 left-2 right-2 z-[400] flex items-center justify-between pointer-events-none">
-        {/* Route Info Badge */}
+        {/* Route / Origin Info Badge */}
         <div className="bg-[#0b1528]/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-cyan-500/40 text-xs shadow-lg flex items-center space-x-2 pointer-events-auto">
           <div className="h-2.5 w-2.5 rounded-full bg-cyan-400 animate-pulse" />
           <div className="flex items-center space-x-1.5 font-black text-slate-100 truncate max-w-[190px] sm:max-w-xs md:max-w-md">
-            <span className="text-cyan-300 truncate">{originDisplayName || 'Origin'}</span>
-            <span className="text-slate-500">➔</span>
-            <span className="text-rose-400 truncate">{destDisplayName || 'Destination'}</span>
+            {shouldShowDestination ? (
+              <>
+                <span className="text-cyan-300 truncate">{originDisplayName || 'Origin'}</span>
+                <span className="text-slate-500">➔</span>
+                <span className="text-rose-400 truncate">{destDisplayName || 'Destination'}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-slate-400 font-semibold text-[11px]">Selected Starting Origin:</span>
+                <span className="text-cyan-300 font-bold truncate">{originDisplayName || 'Choose on Map'}</span>
+              </>
+            )}
           </div>
-          {distanceKm > 0 && (
+          {shouldShowDestination && distanceKm > 0 && (
             <span className="hidden sm:inline-block bg-[#101b30] text-cyan-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-bold">
               {distanceKm} km {durationFormatted ? `• ${durationFormatted}` : ''}
             </span>
@@ -864,16 +887,18 @@ export default function TravelMap({
                             className="px-2 py-1 bg-cyan-600/30 hover:bg-cyan-600 text-cyan-200 hover:text-white rounded-lg text-[9px] font-black border border-cyan-500/40 cursor-pointer"
                             title="Set as Origin (From)"
                           >
-                            From
+                            {canPickDestination ? 'From' : 'Set Origin'}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectSearchResult(res, 'to')}
-                            className="px-2 py-1 bg-rose-600/30 hover:bg-rose-600 text-rose-200 hover:text-white rounded-lg text-[9px] font-black border border-rose-500/40 cursor-pointer"
-                            title="Set as Destination (To)"
-                          >
-                            To
-                          </button>
+                          {canPickDestination && (
+                            <button
+                              type="button"
+                              onClick={() => handleSelectSearchResult(res, 'to')}
+                              className="px-2 py-1 bg-rose-600/30 hover:bg-rose-600 text-rose-200 hover:text-white rounded-lg text-[9px] font-black border border-rose-500/40 cursor-pointer"
+                              title="Set as Destination (To)"
+                            >
+                              To
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -912,34 +937,38 @@ export default function TravelMap({
           {allowSelection && (
             <>
               {/* Pick From Mode Button */}
-              <button
-                type="button"
-                onClick={() => setActivePickMode(m => m === 'origin' ? null : 'origin')}
-                className={`px-2.5 py-1.5 rounded-xl border shadow-md text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activePickMode === 'origin'
-                    ? 'bg-cyan-600 text-white border-cyan-400 ring-2 ring-cyan-300 ring-offset-1 ring-offset-slate-900 animate-pulse'
-                    : 'bg-[#0b1528]/90 hover:bg-[#14233f] text-cyan-400 border-slate-700/80'
-                }`}
-                title="Click anywhere on the map to set 'From' pickup location"
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{activePickMode === 'origin' ? 'Click Map...' : 'Pick From'}</span>
-              </button>
+              {canPickOrigin && (
+                <button
+                  type="button"
+                  onClick={() => setActivePickMode(m => m === 'origin' ? null : 'origin')}
+                  className={`px-2.5 py-1.5 rounded-xl border shadow-md text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activePickMode === 'origin'
+                      ? 'bg-cyan-600 text-white border-cyan-400 ring-2 ring-cyan-300 ring-offset-1 ring-offset-slate-900 animate-pulse'
+                      : 'bg-[#0b1528]/90 hover:bg-[#14233f] text-cyan-400 border-slate-700/80'
+                  }`}
+                  title="Click anywhere on the map to set starting origin"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>{activePickMode === 'origin' ? 'Click Map...' : (canPickDestination ? 'Pick From' : 'Pick Origin')}</span>
+                </button>
+              )}
 
-              {/* Pick To Mode Button */}
-              <button
-                type="button"
-                onClick={() => setActivePickMode(m => m === 'destination' ? null : 'destination')}
-                className={`px-2.5 py-1.5 rounded-xl border shadow-md text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activePickMode === 'destination'
-                    ? 'bg-rose-600 text-white border-rose-400 ring-2 ring-rose-300 ring-offset-1 ring-offset-slate-900 animate-pulse'
-                    : 'bg-[#0b1528]/90 hover:bg-[#14233f] text-rose-400 border-slate-700/80'
-                }`}
-                title="Click anywhere on the map to set 'To' destination"
-              >
-                <Navigation className="h-3.5 w-3.5" />
-                <span>{activePickMode === 'destination' ? 'Click Map...' : 'Pick To'}</span>
-              </button>
+              {/* Pick To Mode Button - Only if canPickDestination */}
+              {canPickDestination && (
+                <button
+                  type="button"
+                  onClick={() => setActivePickMode(m => m === 'destination' ? null : 'destination')}
+                  className={`px-2.5 py-1.5 rounded-xl border shadow-md text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activePickMode === 'destination'
+                      ? 'bg-rose-600 text-white border-rose-400 ring-2 ring-rose-300 ring-offset-1 ring-offset-slate-900 animate-pulse'
+                      : 'bg-[#0b1528]/90 hover:bg-[#14233f] text-rose-400 border-slate-700/80'
+                  }`}
+                  title="Click anywhere on the map to set 'To' destination"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  <span>{activePickMode === 'destination' ? 'Click Map...' : 'Pick To'}</span>
+                </button>
+              )}
             </>
           )}
 

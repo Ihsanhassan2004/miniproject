@@ -679,14 +679,11 @@ export default function PlanTrip() {
               </div>
               <TravelMap
                 origin={typeof sourceLocation === 'object' ? sourceLocation : { name: sourceLocation || 'Kochi', latitude: 9.9312, longitude: 76.2673 }}
-                destination={{ name: 'Munnar', latitude: 10.0889, longitude: 77.0595 }}
+                destination={null}
                 height="320px"
                 allowSelection={true}
+                showDestinationPicker={false}
                 onOriginChange={(loc) => {
-                  setSourceLocation(loc);
-                  setErrorMsg('');
-                }}
-                onDestinationChange={(loc) => {
                   setSourceLocation(loc);
                   setErrorMsg('');
                 }}
