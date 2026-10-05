@@ -633,6 +633,111 @@ def api_estimate_cost():
     cost = estimate_trip_cost(dest_id, travelers, duration, hotel_id, transport_id, restaurant_id, user_budget)
     return jsonify({"cost_estimation": cost}), 200
 
+def check_trip_date_conflict(user_id, start_date_str, duration_days, exclude_trip_id=None):
+    """
+    Validates whether saving or scheduling a trip for `user_id` from `start_date_str`
+    for `duration_days` conflicts/overlaps with any of their other saved trips.
+    Returns: (has_conflict: bool, message: str, conflict_details: dict)
+    """
+    if not start_date_str:
+        return False, "", None
+
+    parsed_start = None
+    date_str = str(start_date_str).strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            parsed_start = datetime.datetime.strptime(date_str, fmt).date()
+            break
+        except ValueError:
+            continue
+
+    if not parsed_start:
+        return False, "", None
+
+    duration = max(1, int(duration_days or 1))
+    parsed_end = parsed_start + datetime.timedelta(days=duration - 1)
+
+    existing_trips = filter_rows("saved_trips", {"user_id": int(user_id)})
+    for trip in existing_trips:
+        t_id = int(trip.get("id", 0))
+        if exclude_trip_id and t_id == int(exclude_trip_id):
+            continue
+
+        status = str(trip.get("status", "")).lower().strip()
+        if status in ["cancelled", "canceled", "deleted"]:
+            continue
+
+        t_date_raw = str(trip.get("travel_date", "")).strip()
+        if not t_date_raw:
+            continue
+
+        t_start = None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+            try:
+                t_start = datetime.datetime.strptime(t_date_raw, fmt).date()
+                break
+            except ValueError:
+                continue
+
+        if not t_start:
+            continue
+
+        t_duration = max(1, int(trip.get("duration_days") or 1))
+        t_end = t_start + datetime.timedelta(days=t_duration - 1)
+
+        # Check date overlap: parsed_start <= t_end and t_start <= parsed_end
+        if parsed_start <= t_end and t_start <= parsed_end:
+            trip_title = trip.get("trip_name") or f"Trip #{t_id}"
+            exist_range_str = f"{t_start.strftime('%d-%m-%Y')} to {t_end.strftime('%d-%m-%Y')}"
+            req_range_str = f"{parsed_start.strftime('%d-%m-%Y')} to {parsed_end.strftime('%d-%m-%Y')}"
+
+            conflict_msg = (
+                f"Date conflict: You already have a saved trip '{trip_title}' scheduled from "
+                f"{exist_range_str} ({t_duration} days). "
+                f"No other trip can be saved during this duration ({req_range_str}). "
+                f"Please choose a different travel date or modify your existing trip."
+            )
+            conflict_data = {
+                "conflicting_trip_id": t_id,
+                "conflicting_trip_name": trip_title,
+                "conflicting_start_date": t_start.strftime("%Y-%m-%d"),
+                "conflicting_end_date": t_end.strftime("%Y-%m-%d"),
+                "conflicting_range": exist_range_str,
+                "requested_start_date": parsed_start.strftime("%Y-%m-%d"),
+                "requested_end_date": parsed_end.strftime("%Y-%m-%d"),
+                "requested_range": req_range_str
+            }
+            return True, conflict_msg, conflict_data
+
+    return False, "", None
+
+@trip_bp.route("/check-date-conflict", methods=["POST"])
+@token_required
+def api_check_date_conflict(current_user):
+    """
+    Checks if a prospective trip date range conflicts with existing saved trips for the user.
+    """
+    data = request.get_json() or {}
+    travel_date = data.get("travel_date") or data.get("date")
+    duration_days = data.get("duration_days") or data.get("duration", 1)
+    exclude_trip_id = data.get("exclude_trip_id")
+
+    if not travel_date:
+        return jsonify({"has_conflict": False, "message": "No date provided"}), 200
+
+    has_conflict, msg, details = check_trip_date_conflict(
+        current_user["id"],
+        travel_date,
+        duration_days,
+        exclude_trip_id=exclude_trip_id
+    )
+
+    return jsonify({
+        "has_conflict": has_conflict,
+        "message": msg,
+        "conflict_trip": details
+    }), 200
+
 @trip_bp.route("/save-trip", methods=["POST"])
 @token_required
 def save_trip(current_user):
@@ -661,19 +766,6 @@ def save_trip(current_user):
         
     if not dest_id:
         return jsonify({"message": "destination_id or destination segments are required"}), 400
-        
-    if hotel_id:
-        book_hotel_room(hotel_id, 1)
-
-    # If multi-segment trip has multiple hotel bookings, book them
-    if isinstance(segments, list):
-        for seg in segments:
-            h_id = seg.get("hotel_id")
-            if h_id:
-                try:
-                    book_hotel_room(int(h_id), 1)
-                except Exception:
-                    pass
 
     # Standardize trip start date
     travel_date = ""
@@ -688,6 +780,32 @@ def save_trip(current_user):
                 continue
     if not travel_date:
         travel_date = datetime.date.today().strftime("%Y-%m-%d")
+
+    # Strict Validation: Check for overlapping saved trips for this user
+    has_conflict, conflict_msg, conflict_details = check_trip_date_conflict(
+        current_user["id"],
+        travel_date,
+        duration_days
+    )
+    if has_conflict:
+        return jsonify({
+            "message": conflict_msg,
+            "error": "DATE_CONFLICT",
+            "conflict_trip": conflict_details
+        }), 400
+
+    if hotel_id:
+        book_hotel_room(hotel_id, 1)
+
+    # If multi-segment trip has multiple hotel bookings, book them
+    if isinstance(segments, list):
+        for seg in segments:
+            h_id = seg.get("hotel_id")
+            if h_id:
+                try:
+                    book_hotel_room(int(h_id), 1)
+                except Exception:
+                    pass
 
     trip_row = {
         "user_id": int(current_user["id"]),
@@ -916,6 +1034,22 @@ def update_my_trip_date(current_user, trip_id):
         return jsonify({"message": "Invalid date format. Use YYYY-MM-DD or DD/MM/YYYY."}), 400
 
     formatted_date = parsed_d.strftime("%Y-%m-%d")
+    trip_duration = int(trip.get("duration_days") or 1)
+
+    # Check for date conflict with user's other saved trips
+    has_conflict, conflict_msg, conflict_details = check_trip_date_conflict(
+        current_user["id"],
+        formatted_date,
+        trip_duration,
+        exclude_trip_id=trip_id
+    )
+    if has_conflict:
+        return jsonify({
+            "message": conflict_msg,
+            "error": "DATE_CONFLICT",
+            "conflict_trip": conflict_details
+        }), 400
+
     success = update_row("saved_trips", trip_id, {"travel_date": formatted_date})
     if success:
         return jsonify({"message": "Trip start date updated successfully!", "travel_date": formatted_date}), 200

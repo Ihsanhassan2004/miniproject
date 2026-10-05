@@ -110,6 +110,11 @@ export const tripService = {
     const res = await api.post('/save-trip', tripData);
     return res.data;
   },
+
+  checkDateConflict: async (params) => {
+    const res = await api.post('/check-date-conflict', params);
+    return res.data;
+  },
   
   getMyTrips: async () => {
     const res = await api.get('/my-trips');

@@ -242,15 +242,51 @@ export default function Recommendations() {
   const [selectionAlert, setSelectionAlert] = useState(null);
 
   // =========================================================================
-  // SAVE TRIP MODAL STATE
+  // SAVE TRIP MODAL STATE & DATE CONFLICT STATE
   // =========================================================================
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [customTripName, setCustomTripName] = useState('');
   const [savingTrip, setSavingTrip] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [tripSavedSuccessfully, setTripSavedSuccessfully] = useState(false);
+  const [dateConflictError, setDateConflictError] = useState(null);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+
+  // Formatted date range display helper
+  const formattedTripDateRange = useMemo(() => {
+    const rawDate = preferences?.travel_date || preferences?.travelDate;
+    if (!rawDate) return { start: 'Flexible / Upcoming', end: '', range: 'Flexible / Upcoming' };
+    try {
+      const parts = String(rawDate).split('-');
+      let startD;
+      if (parts.length === 3 && parts[0].length === 4) {
+        startD = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        startD = new Date(rawDate);
+      }
+      if (isNaN(startD.getTime())) return { start: String(rawDate), end: '', range: String(rawDate) };
+      const endD = new Date(startD);
+      endD.setDate(startD.getDate() + Math.max(1, durationDays) - 1);
+
+      const fmt = (d) => {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+      };
+      const startStr = fmt(startD);
+      const endStr = fmt(endD);
+      return {
+        start: startStr,
+        end: endStr,
+        range: `${startStr} to ${endStr} (${durationDays} Days)`
+      };
+    } catch {
+      return { start: String(rawDate), end: '', range: String(rawDate) };
+    }
+  }, [preferences?.travel_date, preferences?.travelDate, durationDays]);
 
   // Fetch full list of destinations from API for adding / changing stops
   useEffect(() => {
@@ -1125,21 +1161,27 @@ export default function Recommendations() {
     if (!primaryDest) return;
     setSavingTrip(true);
     setSaveStatus('Saving your personalized trip plan...');
+    setDateConflictError(null);
 
     try {
       const payload = buildSaveTripPayload(customTitle);
       await tripService.saveTrip(payload);
       setTripSavedSuccessfully(true);
       setIsSaveModalOpen(false);
+      setDateConflictError(null);
       setSaveStatus(`🎉 Trip "${customTitle}" saved successfully! You can view and manage it anytime in "My Trips".`);
       setTimeout(() => setSaveStatus(null), 6000);
     } catch (err) {
       console.error('Failed to save trip plan:', err);
+      const resMsg = err?.response?.data?.message || err?.message;
       if (err?.response?.status === 401 || !localStorage.getItem('token')) {
         setSaveStatus('Please log in to save your trip.');
         setTimeout(() => navigate('/login'), 1500);
+      } else if (err?.response?.data?.error === 'DATE_CONFLICT' || (resMsg && resMsg.toLowerCase().includes('date conflict'))) {
+        setDateConflictError(resMsg);
+        setSaveStatus(`⚠️ ${resMsg}`);
       } else {
-        setSaveStatus('Could not save trip. Please check your connection and try again.');
+        setSaveStatus(resMsg || 'Could not save trip. Please check your connection and try again.');
         setTimeout(() => setSaveStatus(null), 4000);
       }
     } finally {
@@ -1157,6 +1199,7 @@ export default function Recommendations() {
 
     setSavingTrip(true);
     setSaveStatus('Saving your personalized trip and opening full itinerary...');
+    setDateConflictError(null);
 
     try {
       const stopNames = stops.map(s => s.destinationName).join(' & ');
@@ -1177,11 +1220,16 @@ export default function Recommendations() {
       }, 700);
     } catch (err) {
       console.error('Failed to save trip plan:', err);
+      const resMsg = err?.response?.data?.message || err?.message;
       if (err?.response?.status === 401 || !localStorage.getItem('token')) {
         setSaveStatus('Please log in to save and view your full itinerary.');
         setTimeout(() => navigate('/login'), 1500);
+      } else if (err?.response?.data?.error === 'DATE_CONFLICT' || (resMsg && resMsg.toLowerCase().includes('date conflict'))) {
+        setDateConflictError(resMsg);
+        setIsConflictModalOpen(true);
+        setSaveStatus(`⚠️ ${resMsg}`);
       } else {
-        setSaveStatus('Could not load itinerary. Please ensure all details are valid.');
+        setSaveStatus(resMsg || 'Could not load itinerary. Please ensure all details are valid.');
         setTimeout(() => setSaveStatus(null), 3500);
       }
     } finally {
@@ -2618,16 +2666,30 @@ export default function Recommendations() {
                   <span className="text-cyan-300 font-black">₹{budgetCalculations.totalEstimatedCost.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-400 font-semibold">
-                  <span>Start Date:</span>
-                  <span className="text-slate-200 font-bold">{preferences?.travel_date || 'Upcoming'}</span>
+                  <span>Planned Dates:</span>
+                  <span className="text-cyan-200 font-bold">{formattedTripDateRange.range}</span>
                 </div>
               </div>
+
+              {/* Date Conflict Error Banner */}
+              {dateConflictError && (
+                <div className="p-3.5 bg-rose-500/15 border border-rose-500/50 rounded-2xl flex items-start space-x-3 text-xs text-rose-200 animate-pulse">
+                  <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="font-black text-rose-300">Schedule Date Conflict Detected</div>
+                    <div className="text-[11px] leading-relaxed text-rose-100">{dateConflictError}</div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsSaveModalOpen(false)}
+                  onClick={() => {
+                    setIsSaveModalOpen(false);
+                    setDateConflictError(null);
+                  }}
                   className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors"
                 >
                   Cancel
@@ -2649,6 +2711,70 @@ export default function Recommendations() {
                       <span>Save Trip Plan</span>
                     </>
                   )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* POPUP MODAL: DATE CONFLICT ALERT */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {isConflictModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="w-full max-w-lg rounded-3xl border border-rose-500/50 bg-[#101b30] p-6 sm:p-7 shadow-2xl space-y-5 text-left relative"
+            >
+              <div className="flex items-start justify-between border-b border-slate-700/70 pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-100">Schedule Conflict Detected</h3>
+                    <p className="text-xs text-slate-400 font-medium">Overlapping trip already exists for these dates</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsConflictModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-[#0b1528] text-slate-400 hover:text-white border border-slate-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-4 bg-rose-950/40 border border-rose-500/40 rounded-2xl text-xs text-rose-200 leading-relaxed space-y-2">
+                <div className="font-bold text-rose-300 text-sm">Cannot Schedule Multiple Trips in the Same Duration</div>
+                <p>{dateConflictError || `You already have another trip saved during ${formattedTripDateRange.range}. No other trip can be scheduled within this time frame.`}</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsConflictModalOpen(false);
+                    navigate('/plan', { state: { preferences } });
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Change Travel Dates in Plan Trip</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsConflictModalOpen(false);
+                    navigate('/my-trips');
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>View Saved Trips</span>
                 </button>
               </div>
             </motion.div>

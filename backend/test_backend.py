@@ -8,6 +8,7 @@ from backend.services.transport_service import get_transport_recommendations
 from backend.services.weather_service import get_weather_for_destination
 from backend.services.itinerary_generator import generate_itinerary
 from backend.services.chatbot import respond_to_query
+from backend.utils.auth import generate_token
 
 class TestBackendServices(unittest.TestCase):
     def setUp(self):
@@ -250,6 +251,85 @@ class TestBackendServices(unittest.TestCase):
         self.assertIn("recommendations", data)
         self.assertIn("destination_types", data["preferences"])
         self.assertEqual(data["preferences"]["destination_types"], ["beach", "city tourism"])
+
+    def test_saved_trip_date_conflict_validation(self):
+        """Verify that when a trip is saved for 05-10-2026 with duration 5 days, no overlapping trip can be saved."""
+        users = load_csv("users")
+        user_id = int(users.iloc[0]["id"]) if not users.empty else 6
+        token = generate_token(user_id, "test_user")
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # 1. Save first trip starting 2026-10-05 for 5 days (Spans 2026-10-05 to 2026-10-09)
+        trip1_payload = {
+            "destination_id": 1,
+            "source_location": "Kochi",
+            "budget": 20000,
+            "travelers": 2,
+            "duration_days": 5,
+            "travel_date": "2026-10-05",
+            "trip_name": "Autumn Munnar Retreat"
+        }
+        res1 = self.app.post("/api/save-trip", json=trip1_payload, headers=headers)
+        self.assertEqual(res1.status_code, 201, "First trip should be saved successfully.")
+        trip1_data = json.loads(res1.data)
+        trip1_id = trip1_data["trip"]["id"]
+
+        # 2. Attempt to save an overlapping trip (same start date 2026-10-05, duration 3 days) -> MUST FAIL (400)
+        res_overlap1 = self.app.post("/api/save-trip", json={
+            "destination_id": 2,
+            "source_location": "Kochi",
+            "budget": 15000,
+            "travelers": 1,
+            "duration_days": 3,
+            "travel_date": "2026-10-05",
+            "trip_name": "Overlapping Trip Same Date"
+        }, headers=headers)
+        self.assertEqual(res_overlap1.status_code, 400)
+        overlap1_data = json.loads(res_overlap1.data)
+        self.assertEqual(overlap1_data.get("error"), "DATE_CONFLICT")
+        self.assertIn("Date conflict", overlap1_data["message"])
+
+        # 3. Attempt to save an overlapping trip in the middle of the duration (2026-10-07 for 4 days) -> MUST FAIL (400)
+        res_overlap2 = self.app.post("/api/save-trip", json={
+            "destination_id": 3,
+            "source_location": "Kochi",
+            "budget": 18000,
+            "travelers": 2,
+            "duration_days": 4,
+            "travel_date": "2026-10-07",
+            "trip_name": "Mid-week Overlap"
+        }, headers=headers)
+        self.assertEqual(res_overlap2.status_code, 400)
+        overlap2_data = json.loads(res_overlap2.data)
+        self.assertEqual(overlap2_data.get("error"), "DATE_CONFLICT")
+
+        # 4. Check endpoint /api/check-date-conflict returns has_conflict: True for overlapping dates
+        chk_conflict = self.app.post("/api/check-date-conflict", json={
+            "travel_date": "2026-10-08",
+            "duration_days": 3
+        }, headers=headers)
+        self.assertEqual(chk_conflict.status_code, 200)
+        chk_data = json.loads(chk_conflict.data)
+        self.assertTrue(chk_data["has_conflict"])
+        self.assertIn("Autumn Munnar Retreat", chk_data["message"])
+
+        # 5. Save a non-overlapping trip after the 5-day span (starting 2026-10-10) -> MUST SUCCEED (201)
+        res_non_overlap = self.app.post("/api/save-trip", json={
+            "destination_id": 2,
+            "source_location": "Kochi",
+            "budget": 12000,
+            "travelers": 1,
+            "duration_days": 3,
+            "travel_date": "2026-10-10",
+            "trip_name": "Subsequent Trip"
+        }, headers=headers)
+        self.assertEqual(res_non_overlap.status_code, 201, "Non-overlapping trip should save successfully.")
+
+        # Clean up created test trips
+        from backend.utils.csv_manager import delete_row
+        delete_row("saved_trips", trip1_id)
+        saved_non_overlap_id = json.loads(res_non_overlap.data)["trip"]["id"]
+        delete_row("saved_trips", saved_non_overlap_id)
 
 if __name__ == "__main__":
     unittest.main()
